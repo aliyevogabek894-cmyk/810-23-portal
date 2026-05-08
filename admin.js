@@ -51,7 +51,7 @@ function previewAdminImg(input, previewId, labelId) {
 }
 
 // --- State ---
-let allStudents = [], pendingStudents = [], allPhotos = [], pendingPhotos = [];
+let allStudents = [], pendingStudents = [], allPhotos = [], pendingPhotos = [], allPosts = [];
 
 // --- Login ---
 function checkLogin() {
@@ -81,7 +81,8 @@ function showTab(name, el) {
         'pending-students': 'Kutilayotgan A\'zolar',
         'pending-photos': 'Kutilayotgan Rasmlar',
         'all-students': 'Barcha A\'zolar',
-        'all-photos': 'Barcha Rasmlar'
+        'all-photos': 'Barcha Rasmlar',
+        'all-posts': 'Barcha Postlar'
     };
     document.getElementById('tab-title').textContent = titles[name] || name;
     if (el) el.classList.add('active');
@@ -185,6 +186,33 @@ function renderAllPhotos() {
     `).join('');
 }
 
+// --- Render All Posts ---
+function renderAllPosts() {
+    const el = document.getElementById('all-posts-list');
+    const statEl = document.getElementById('stat-total-posts');
+    if (statEl) statEl.textContent = allPosts.length;
+    
+    if (allPosts.length === 0) {
+        el.innerHTML = '<p class="empty-msg">Hozircha postlar yo\'q.</p>'; return;
+    }
+    el.innerHTML = allPosts.map(p => {
+        const student = allStudents.find(s => s.id === p.studentId);
+        return `
+            <div class="card">
+                <div class="card-body">
+                    <span class="card-role">${student ? student.name : 'Noma\'lum a\'zo'}</span>
+                    <p>${p.text}</p>
+                    ${p.img ? `<img src="${p.img}" class="card-img" style="height:auto;margin-top:0.5rem;border-radius:8px;">` : ''}
+                    <small>${p.createdAt ? new Date(p.createdAt.toDate()).toLocaleString() : 'Hozirgina'}</small>
+                </div>
+                <div class="card-actions">
+                    <button class="btn btn-danger btn-sm" onclick="deletePost('${p.id}')">🗑️ O'chirish</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
 // --- Firestore Actions ---
 async function approveStudent(id) {
     const s = pendingStudents.find(x => x.id === id);
@@ -238,11 +266,20 @@ async function deletePhoto(id) {
     } catch(e) { showToast("Xatolik: " + e.message, 'error'); }
 }
 
+async function deletePost(id) {
+    if (!confirm("Bu postni o'chirmoqchimisiz?")) return;
+    try {
+        await db.collection('810-23-posts').doc(id).delete();
+        showToast("Post o'chirildi.", 'error');
+    } catch(e) { showToast("Xatolik: " + e.message, 'error'); }
+}
+
 // --- Init Dashboard & Listeners ---
 function initDashboard() {
     db.collection('810-23-students').orderBy('createdAt', 'desc').onSnapshot(snap => {
         allStudents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         renderAllStudents();
+        renderAllPosts(); // Re-render posts to show student names correctly
     });
     db.collection('810-23-pending-students').orderBy('createdAt', 'desc').onSnapshot(snap => {
         pendingStudents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -255,6 +292,10 @@ function initDashboard() {
     db.collection('810-23-pending-gallery').orderBy('createdAt', 'desc').onSnapshot(snap => {
         pendingPhotos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         renderPendingPhotos();
+    });
+    db.collection('810-23-posts').orderBy('createdAt', 'desc').onSnapshot(snap => {
+        allPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderAllPosts();
     });
 
     // Add student form
@@ -307,3 +348,4 @@ function initDashboard() {
         finally { btn.disabled = false; btn.innerText = "Qo'shish"; }
     });
 }
+

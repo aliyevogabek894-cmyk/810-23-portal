@@ -49,6 +49,9 @@
                 <a href="#" class="nav-item" onclick="showTab('all-photos',this)">
                     <span class="nav-icon">📷</span> Barcha Rasmlar
                 </a>
+                <a href="#" class="nav-item" onclick="showTab('all-posts',this)">
+                    <span class="nav-icon">📝</span> Barcha Postlar
+                </a>
                 <a href="index.html" class="nav-item" style="margin-top:auto;">
                     <span class="nav-icon">🌐</span> Saytga qaytish
                 </a>
@@ -94,6 +97,13 @@
                         <div class="stat-info">
                             <h3 id="stat-pending-photos">0</h3>
                             <p>Kutilayotgan Rasmlar</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📝</div>
+                        <div class="stat-info">
+                            <h3 id="stat-total-posts">0</h3>
+                            <p>Jami Postlar</p>
                         </div>
                     </div>
                 </div>
@@ -167,6 +177,13 @@
                     </form>
                 </div>
                 <div id="all-photos-list" class="cards-grid">
+                    <p class="empty-msg">Yuklanmoqda...</p>
+                </div>
+            </div>
+
+            <!-- All Posts Tab -->
+            <div id="tab-all-posts" class="tab-content">
+                <div id="all-posts-list" class="cards-grid">
                     <p class="empty-msg">Yuklanmoqda...</p>
                 </div>
             </div>

@@ -55,7 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- State ---
     let students = [];
     let galleryPhotos = [];
-    let pendingPhotos = [];
 
     // --- Selectors ---
     const studentGrid = document.getElementById('student-grid');
@@ -65,21 +64,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const joinForm = document.getElementById('join-form');
     const photoModal = document.getElementById('photo-modal');
     const photoForm = document.getElementById('photo-form');
-    const adminSection = document.getElementById('admin-section');
-    const pendingPhotosList = document.getElementById('pending-photos-list');
+    const profileModal = document.getElementById('profile-modal');
+    const postForm = document.getElementById('post-form');
 
     // --- Render Students ---
     const renderStudents = () => {
         if (!studentGrid) return;
         studentGrid.innerHTML = students.map(student => `
-            <div class="student-card animate-on-scroll">
+            <div class="student-card animate-on-scroll" onclick="openProfileModal('${student.id}')">
                 <img src="${student.img || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(student.name) + '&background=6366f1&color=fff&size=200'}" alt="${student.name}" class="student-img">
                 <span class="role">${student.role}</span>
                 <h3>${student.name}</h3>
                 <p>${student.bio}</p>
                 <div class="student-socials">
-                    ${student.tg ? `<a href="https://t.me/${student.tg.replace('@', '')}" class="social-icon">TG</a>` : ''}
-                    ${student.ig ? `<a href="https://instagram.com/${student.ig}" class="social-icon">IG</a>` : ''}
+                    ${student.tg ? `<a href="https://t.me/${student.tg.replace('@', '')}" class="social-icon" onclick="event.stopPropagation()">TG</a>` : ''}
+                    ${student.ig ? `<a href="https://instagram.com/${student.ig}" class="social-icon" onclick="event.stopPropagation()">IG</a>` : ''}
                 </div>
             </div>
         `).join('');
@@ -111,6 +110,36 @@ document.addEventListener('DOMContentLoaded', () => {
     window.closeJoinModal = () => { joinModal.classList.remove('active'); document.body.style.overflow = 'auto'; };
     window.openPhotoModal = () => { photoModal.classList.add('active'); document.body.style.overflow = 'hidden'; };
     window.closePhotoModal = () => { photoModal.classList.remove('active'); document.body.style.overflow = 'auto'; };
+    
+    window.openProfileModal = (id) => {
+        const s = students.find(x => x.id === id);
+        if (!s) return;
+        
+        document.getElementById('profile-detail').innerHTML = `
+            <div class="profile-header">
+                <img src="${s.img || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(s.name) + '&background=6366f1&color=fff&size=200'}" alt="${s.name}">
+                <div class="profile-info">
+                    <span class="role">${s.role}</span>
+                    <h2>${s.name}</h2>
+                    <p>${s.bio}</p>
+                    <div class="student-socials" style="justify-content: flex-start; margin-top: 1rem;">
+                        ${s.tg ? `<a href="https://t.me/${s.tg.replace('@', '')}" class="social-icon">TG</a>` : ''}
+                        ${s.ig ? `<a href="https://instagram.com/${s.ig}" class="social-icon">IG</a>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('post-member-id').value = id;
+        profileModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        fetchPosts(id);
+    };
+    
+    window.closeProfileModal = () => {
+        profileModal.classList.remove('active');
+        document.body.style.overflow = 'auto';
+    };
 
     // --- Firebase Data Fetch ---
     const fetchData = () => {
@@ -125,55 +154,53 @@ document.addEventListener('DOMContentLoaded', () => {
                 galleryPhotos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderGallery();
             });
-
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('admin') === 'true') {
-            adminSection.style.display = 'block';
-            db.collection("810-23-pending-gallery").orderBy("createdAt", "desc")
-                .onSnapshot(snapshot => {
-                    pendingPhotos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderAdminPanel();
-                });
-        }
     };
 
-    // --- Render Admin Panel ---
-    const renderAdminPanel = () => {
-        if (!pendingPhotosList) return;
-        pendingPhotosList.innerHTML = pendingPhotos.map(photo => `
-            <div class="admin-item">
-                <img src="${photo.img}" alt="${photo.title}">
-                <h4>${photo.title}</h4>
-                <div class="admin-item-actions">
-                    <button class="btn btn-primary btn-sm" onclick="approvePhoto('${photo.id}')">Tasdiqlash</button>
-                    <button class="btn btn-outline btn-sm" onclick="deletePhoto('${photo.id}')">O'chirish</button>
-                </div>
-            </div>
-        `).join('');
-        if (pendingPhotos.length === 0) {
-            pendingPhotosList.innerHTML = "<p>Hozircha kutilayotgan rasmlar yo'q.</p>";
-        }
+    // --- Posts Logic ---
+    const fetchPosts = (studentId) => {
+        const postsList = document.getElementById('profile-posts');
+        postsList.innerHTML = '<p>Yuklanmoqda...</p>';
+        
+        db.collection("810-23-posts")
+            .where("studentId", "==", studentId)
+            .orderBy("createdAt", "desc")
+            .onSnapshot(snapshot => {
+                const posts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (posts.length === 0) {
+                    postsList.innerHTML = '<p class="empty-msg">Hozircha postlar yo\'q.</p>';
+                } else {
+                    postsList.innerHTML = posts.map(p => `
+                        <div class="post-item">
+                            <p>${p.text}</p>
+                            ${p.img ? `<img src="${p.img}" alt="Post image">` : ''}
+                            <small>${p.createdAt ? new Date(p.createdAt.toDate()).toLocaleString() : 'Hozirgina'}</small>
+                        </div>
+                    `).join('');
+                }
+            });
     };
 
-    // --- Admin Actions ---
-    window.approvePhoto = async (id) => {
-        const photo = pendingPhotos.find(p => p.id === id);
-        if (!photo) return;
-        try {
-            await db.collection("810-23-gallery").add({ title: photo.title, img: photo.img, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-            await db.collection("810-23-pending-gallery").doc(id).delete();
-            alert("Rasm tasdiqlandi!");
-        } catch (e) { alert("Xatolik: " + e.message); }
-    };
-
-    window.deletePhoto = async (id) => {
-        if (confirm("Ushbu rasmni o'chirmoqchimisiz?")) {
+    if (postForm) {
+        postForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const studentId = document.getElementById('post-member-id').value;
+            const text = document.getElementById('post-text').value.trim();
+            const img = document.getElementById('post-img').value.trim();
+            const btn = postForm.querySelector('button');
+            
+            btn.disabled = true; btn.innerText = 'Yuborilmoqda...';
             try {
-                await db.collection("810-23-pending-gallery").doc(id).delete();
-                alert("Rasm o'chirildi.");
-            } catch (e) { alert("Xatolik: " + e.message); }
-        }
-    };
+                await db.collection("810-23-posts").add({
+                    studentId,
+                    text,
+                    img: img || null,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                postForm.reset();
+            } catch (err) { alert("Xatolik: " + err.message); }
+            finally { btn.disabled = false; btn.innerText = 'Post joylash'; }
+        });
+    }
 
     // --- Join Form Submit ---
     if (joinForm) {
