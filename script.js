@@ -14,7 +14,27 @@ if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.firestore();
-const storage = firebase.storage();
+
+// --- Utility: Resize image and convert to base64 ---
+const resizeImageToBase64 = (file, maxSize = 400) => {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let w = img.width, h = img.height;
+                if (w > h) { if (w > maxSize) { h = h * maxSize / w; w = maxSize; } }
+                else { if (h > maxSize) { w = w * maxSize / h; h = maxSize; } }
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', 0.7));
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+};
 
 // --- Utility: Preview selected image ---
 window.previewImg = (input, previewId, labelId) => {
@@ -29,18 +49,6 @@ window.previewImg = (input, previewId, labelId) => {
         if (label) label.style.display = 'none';
     };
     reader.readAsDataURL(file);
-};
-
-// --- Utility: Upload file to Firebase Storage ---
-const uploadFile = (file, path) => {
-    return new Promise((resolve, reject) => {
-        const ref = storage.ref(path);
-        const task = ref.put(file);
-        task.on('state_changed', null, reject, async () => {
-            const url = await ref.getDownloadURL();
-            resolve(url);
-        });
-    });
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -177,9 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const fileInput = document.getElementById('join-img');
                 let imgUrl = null;
                 if (fileInput.files[0]) {
-                    const file = fileInput.files[0];
-                    const path = `810-23/students/${Date.now()}_${file.name}`;
-                    imgUrl = await uploadFile(file, path);
+                    imgUrl = await resizeImageToBase64(fileInput.files[0], 400);
                 }
                 const newMember = {
                     name: document.getElementById('join-name').value.trim(),
@@ -214,9 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const fileInput = document.getElementById('photo-img');
                 let imgUrl = null;
                 if (fileInput.files[0]) {
-                    const file = fileInput.files[0];
-                    const path = `810-23/gallery/${Date.now()}_${file.name}`;
-                    imgUrl = await uploadFile(file, path);
+                    imgUrl = await resizeImageToBase64(fileInput.files[0], 800);
                 }
                 const newPhoto = {
                     title: document.getElementById('photo-title').value.trim(),

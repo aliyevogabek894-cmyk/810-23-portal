@@ -10,9 +10,32 @@ const firebaseConfig = {
 
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const storage = firebase.storage();
 
-// --- Preview Image ---
+// --- Resize image to base64 ---
+function resizeImageToBase64(file, maxSize) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let w = img.width, h = img.height;
+                if (w > h) { if (w > maxSize) { h = h * maxSize / w; w = maxSize; } }
+                else { if (h > maxSize) { w = w * maxSize / h; h = maxSize; } }
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', 0.75));
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// --- Password ---
+const ADMIN_PASSWORD = "admin810";
+
+// --- Preview image in admin forms ---
 function previewAdminImg(input, previewId, labelId) {
     const file = input.files[0];
     if (!file) return;
@@ -26,21 +49,6 @@ function previewAdminImg(input, previewId, labelId) {
     };
     reader.readAsDataURL(file);
 }
-
-// --- Upload File ---
-const uploadFile = (file, path) => {
-    return new Promise((resolve, reject) => {
-        const ref = storage.ref(path);
-        const task = ref.put(file);
-        task.on('state_changed', null, reject, async () => {
-            const url = await ref.getDownloadURL();
-            resolve(url);
-        });
-    });
-};
-
-// --- Password ---
-const ADMIN_PASSWORD = "admin810";
 
 // --- State ---
 let allStudents = [], pendingStudents = [], allPhotos = [], pendingPhotos = [];
@@ -257,7 +265,7 @@ function initDashboard() {
             const fileInput = document.getElementById('ns-img');
             let imgUrl = null;
             if (fileInput.files[0]) {
-                imgUrl = await uploadFile(fileInput.files[0], `810-23/students/${Date.now()}_${fileInput.files[0].name}`);
+                imgUrl = await resizeImageToBase64(fileInput.files[0], 400);
             }
             await db.collection('810-23-students').add({
                 name: document.getElementById('ns-name').value.trim(),
@@ -284,7 +292,7 @@ function initDashboard() {
             const fileInput = document.getElementById('np-img');
             let imgUrl = null;
             if (fileInput.files[0]) {
-                imgUrl = await uploadFile(fileInput.files[0], `810-23/gallery/${Date.now()}_${fileInput.files[0].name}`);
+                imgUrl = await resizeImageToBase64(fileInput.files[0], 800);
             }
             await db.collection('810-23-gallery').add({
                 title: document.getElementById('np-title').value.trim(),
