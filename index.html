@@ -76,6 +76,7 @@
             <div class="section-header">
                 <h2 class="animate-on-scroll">Bizning <span>Xotiralar</span></h2>
                 <p class="animate-on-scroll">Eng qiziqarli lahzalarimiz jamlangan galereya</p>
+                <button class="btn btn-primary btn-sm mt-1 animate-on-scroll" onclick="openPhotoModal()">Yangi rasm qo'shish</button>
             </div>
             <div class="gallery-grid" id="gallery-grid">
                 <!-- Gallery items will be injected by JavaScript -->
@@ -83,7 +84,28 @@
         </div>
     </section>
 
-    <!-- Join Group Modal -->
+
+    <!-- Admin Section (Hidden by default) -->
+    <section id="admin-section" class="section" style="display: none;">
+        <div class="container">
+            <div class="section-header">
+                <h2>Admin <span>Boshqaruvi</span></h2>
+                <p>Kutilayotgan rasmlarni tasdiqlash.</p>
+            </div>
+            
+            <div class="admin-grid">
+                <div class="admin-panel glass">
+                    <h3>Kutilayotgan Rasmlar</h3>
+                    <div id="pending-photos-list" class="admin-list">
+                        <!-- Pending photos will appear here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <!-- Modals -->
     <div id="join-modal" class="modal">
         <div class="modal-content glass">
             <span class="close" onclick="closeJoinModal()">&times;</span>
@@ -121,7 +143,6 @@
         </div>
     </div>
 
-    <!-- Image Upload Modal -->
     <div id="photo-modal" class="modal">
         <div class="modal-content glass">
             <span class="close" onclick="closePhotoModal()">&times;</span>
@@ -141,27 +162,6 @@
         </div>
     </div>
 
-    <!-- Admin Section (Hidden by default) -->
-    <section id="admin-section" class="section" style="display: none;">
-        <div class="container">
-            <div class="section-header animate-up">
-                <h2>Guruh <span>Galereyasi</span></h2>
-                <p>Bizning unutilmas lahzalarimiz jamlangan foto-albom.</p>
-                <button class="btn btn-outline btn-sm mt-1" onclick="openPhotoModal()">Yangi rasm qo'shish</button>
-            </div>
-            
-            <div class="admin-grid">
-                <div class="admin-panel glass">
-                    <h3>Kutilayotgan Rasmlar</h3>
-                    <div id="pending-photos-list" class="admin-list">
-                        <!-- Pending photos will appear here -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
     <footer id="about">
         <div class="container">
             <div class="footer-content">
