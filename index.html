@@ -125,8 +125,12 @@
                     <textarea id="join-bio" placeholder="Qiziqishlaringiz va maqsadlaringiz..." required></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="join-img">Profil rasmi URL manzili (ixtiyoriy)</label>
-                    <input type="url" id="join-img" placeholder="https://rasm.uz/profil.jpg">
+                    <label for="join-img">Profil rasmi (ixtiyoriy)</label>
+                    <div class="file-upload-area" id="join-img-area" onclick="document.getElementById('join-img').click()">
+                        <span id="join-img-label">📁 Rasm tanlash uchun bosing</span>
+                        <img id="join-img-preview" class="img-preview" style="display:none;">
+                    </div>
+                    <input type="file" id="join-img" accept="image/*" style="display:none;" onchange="previewImg(this,'join-img-preview','join-img-label')">
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -154,11 +158,45 @@
                     <input type="text" id="photo-title" placeholder="Masalan: Dars jarayoni..." required>
                 </div>
                 <div class="form-group">
-                    <label for="photo-img">Rasm URL manzili</label>
-                    <input type="url" id="photo-img" placeholder="https://rasm.uz/rasm.jpg" required>
+                    <label for="photo-img">Rasm tanlash</label>
+                    <div class="file-upload-area" id="photo-img-area" onclick="document.getElementById('photo-img').click()">
+                        <span id="photo-img-label">📁 Rasm tanlash uchun bosing</span>
+                        <img id="photo-img-preview" class="img-preview" style="display:none;">
+                    </div>
+                    <input type="file" id="photo-img" accept="image/*" style="display:none;" onchange="previewImg(this,'photo-img-preview','photo-img-label')" required>
                 </div>
                 <button type="submit" class="btn btn-primary w-100">Yuborish</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Member Profile Modal -->
+    <div id="profile-modal" class="modal">
+        <div class="modal-content glass profile-modal-content">
+            <span class="close" onclick="closeProfileModal()">&times;</span>
+            <div id="profile-detail">
+                <!-- Profile details injected by JS -->
+            </div>
+            
+            <hr class="modal-divider">
+            
+            <div class="profile-feed-section">
+                <h3>Shaxsiy <span>Platforma</span></h3>
+                <form id="post-form">
+                    <input type="hidden" id="post-member-id">
+                    <div class="form-group">
+                        <textarea id="post-text" placeholder="Nimalar haqida o'ylayapsiz?" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <input type="url" id="post-img" placeholder="Rasm URL (ixtiyoriy)">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">Post joylash</button>
+                </form>
+                
+                <div id="profile-posts" class="posts-list">
+                    <!-- Posts will appear here -->
+                </div>
+            </div>
         </div>
     </div>
 

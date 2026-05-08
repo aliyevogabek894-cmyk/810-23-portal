@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>810-23 | Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="login-screen">
+        <div class="login-box">
+            <div class="login-logo">810-23<span>.</span></div>
+            <h2>Admin <span>Kirish</span></h2>
+            <p>Davom etish uchun parolni kiriting</p>
+            <div class="form-group">
+                <input type="password" id="admin-password" placeholder="Parol" onkeydown="if(event.key==='Enter')checkLogin()">
+            </div>
+            <button class="btn btn-primary w-100" onclick="checkLogin()">Kirish</button>
+            <p id="login-error" style="color:#ef4444;margin-top:1rem;display:none;">Noto'g'ri parol!</p>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="dashboard" style="display:none;">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">810-23<span>.</span></div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" onclick="showTab('overview',this)">
+                    <span class="nav-icon">📊</span> Umumiy
+                </a>
+                <a href="#" class="nav-item" onclick="showTab('pending-students',this)">
+                    <span class="nav-icon">👥</span> Kutilayotgan A'zolar
+                    <span class="badge" id="badge-students">0</span>
+                </a>
+                <a href="#" class="nav-item" onclick="showTab('pending-photos',this)">
+                    <span class="nav-icon">🖼️</span> Kutilayotgan Rasmlar
+                    <span class="badge" id="badge-photos">0</span>
+                </a>
+                <a href="#" class="nav-item" onclick="showTab('all-students',this)">
+                    <span class="nav-icon">🎓</span> Barcha A'zolar
+                </a>
+                <a href="#" class="nav-item" onclick="showTab('all-photos',this)">
+                    <span class="nav-icon">📷</span> Barcha Rasmlar
+                </a>
+                <a href="index.html" class="nav-item" style="margin-top:auto;">
+                    <span class="nav-icon">🌐</span> Saytga qaytish
+                </a>
+                <a href="#" class="nav-item" onclick="logout()" style="color:#ef4444;">
+                    <span class="nav-icon">🚪</span> Chiqish
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="topbar">
+                <h1 id="tab-title">Umumiy Ko'rinish</h1>
+                <div class="topbar-info">Admin | 810-23 Portal</div>
+            </div>
+
+            <!-- Overview Tab -->
+            <div id="tab-overview" class="tab-content active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-info">
+                            <h3 id="stat-total-students">0</h3>
+                            <p>Jami A'zolar</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏳</div>
+                        <div class="stat-info">
+                            <h3 id="stat-pending-students">0</h3>
+                            <p>Kutilayotgan A'zolar</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📷</div>
+                        <div class="stat-info">
+                            <h3 id="stat-total-photos">0</h3>
+                            <p>Jami Rasmlar</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🕐</div>
+                        <div class="stat-info">
+                            <h3 id="stat-pending-photos">0</h3>
+                            <p>Kutilayotgan Rasmlar</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <h3>Tezkor Harakatlar</h3>
+                    <div class="quick-actions">
+                        <button class="btn btn-primary" onclick="showTab('pending-students', null)">A'zolarni Ko'rib Chiqish</button>
+                        <button class="btn btn-secondary" onclick="showTab('pending-photos', null)">Rasmlarni Ko'rib Chiqish</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Students Tab -->
+            <div id="tab-pending-students" class="tab-content">
+                <div id="pending-students-list" class="cards-grid">
+                    <p class="empty-msg">Yuklanmoqda...</p>
+                </div>
+            </div>
+
+            <!-- Pending Photos Tab -->
+            <div id="tab-pending-photos" class="tab-content">
+                <div id="pending-photos-list" class="cards-grid">
+                    <p class="empty-msg">Yuklanmoqda...</p>
+                </div>
+            </div>
+
+            <!-- All Students Tab -->
+            <div id="tab-all-students" class="tab-content">
+                <div class="section-card" style="margin-bottom:1.5rem;">
+                    <h3>Yangi A'zo Qo'shish</h3>
+                    <form id="add-student-form" class="inline-form">
+                        <div class="form-row">
+                            <input type="text" id="ns-name" placeholder="Ism familiya" required>
+                            <input type="text" id="ns-role" placeholder="Rol (Talaba...)" required>
+                        </div>
+                        <div class="form-row">
+                            <input type="text" id="ns-bio" placeholder="Qisqacha ma'lumot" required>
+                            <div class="file-upload-area small" onclick="document.getElementById('ns-img').click()">
+                                <span id="ns-img-label">📁 Rasm tanlash</span>
+                                <img id="ns-img-preview" class="img-preview" style="display:none;">
+                            </div>
+                            <input type="file" id="ns-img" accept="image/*" style="display:none;" onchange="previewAdminImg(this,'ns-img-preview','ns-img-label')">
+                        </div>
+                        <div class="form-row">
+                            <input type="text" id="ns-tg" placeholder="Telegram @username">
+                            <input type="text" id="ns-ig" placeholder="Instagram username">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Qo'shish</button>
+                    </form>
+                </div>
+                <div id="all-students-list" class="cards-grid">
+                    <p class="empty-msg">Yuklanmoqda...</p>
+                </div>
+            </div>
+
+            <!-- All Photos Tab -->
+            <div id="tab-all-photos" class="tab-content">
+                <div class="section-card" style="margin-bottom:1.5rem;">
+                    <h3>Yangi Rasm Qo'shish</h3>
+                    <form id="add-photo-form" class="inline-form">
+                        <div class="form-row">
+                            <input type="text" id="np-title" placeholder="Rasm sarlavhasi" required>
+                            <div class="file-upload-area small" onclick="document.getElementById('np-img').click()">
+                                <span id="np-img-label">📁 Rasm tanlash</span>
+                                <img id="np-img-preview" class="img-preview" style="display:none;">
+                            </div>
+                            <input type="file" id="np-img" accept="image/*" style="display:none;" onchange="previewAdminImg(this,'np-img-preview','np-img-label')" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Qo'shish</button>
+                    </form>
+                </div>
+                <div id="all-photos-list" class="cards-grid">
+                    <p class="empty-msg">Yuklanmoqda...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
