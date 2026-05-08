@@ -116,8 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeJoinModal();
                 alert("Tabriklaymiz! Siz guruhga muvaffaqiyatli qo'shildingiz.");
             } catch (error) {
-                console.error("Xatolik:", error);
-                alert("Xatolik yuz berdi. Iltimos qayta urinib ko'ring.");
+                console.error("Firebase Xatoligi:", error);
+                alert("Xatolik yuz berdi: " + error.message + "\n\nIltimos, Firebase konsolida 'Firestore Rules' ochiqligini tekshiring.");
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerText = "Ro'yxatdan o'tish";
