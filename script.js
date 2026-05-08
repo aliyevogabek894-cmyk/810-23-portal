@@ -18,14 +18,8 @@ const db = firebase.firestore();
 document.addEventListener('DOMContentLoaded', () => {
     // --- State ---
     let students = [];
-
-    const galleryItems = [
-        { title: "Dars jarayoni", img: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800" },
-        { title: "Tanaffusda", img: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=800" },
-        { title: "Bayram tadbiri", img: "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&q=80&w=800" },
-        { title: "Imtihon oldidan", img: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800" },
-        { title: "Guruh sayohati", img: "https://images.unsplash.com/photo-1539635278303-d4002c07dee3?auto=format&fit=crop&q=80&w=800" }
-    ];
+    let galleryPhotos = [];
+    let pendingPhotos = [];
 
     // --- Selectors ---
     const studentGrid = document.getElementById('student-grid');
@@ -33,6 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const nav = document.getElementById('main-nav');
     const joinModal = document.getElementById('join-modal');
     const joinForm = document.getElementById('join-form');
+    const photoModal = document.getElementById('photo-modal');
+    const photoForm = document.getElementById('photo-form');
+    const adminSection = document.getElementById('admin-section');
+    const pendingPhotosList = document.getElementById('pending-photos-list');
 
     // --- Functions ---
 
@@ -51,15 +49,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
         `).join('');
-        
-        // Re-observe dynamic elements
         document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
     };
 
     // Render Gallery
     const renderGallery = () => {
         if (!galleryGrid) return;
-        galleryGrid.innerHTML = galleryItems.map(item => `
+        // Static items + DB items
+        const staticItems = [
+            { title: "Dars jarayoni", img: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800" },
+            { title: "Tanaffusda", img: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=800" },
+            { title: "Bayram tadbiri", img: "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&q=80&w=800" }
+        ];
+
+        const allPhotos = [...staticItems, ...galleryPhotos];
+
+        galleryGrid.innerHTML = allPhotos.map(item => `
             <div class="gallery-item animate-on-scroll">
                 <img src="${item.img}" alt="${item.title}">
                 <div class="gallery-overlay">
@@ -67,39 +72,91 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
         `).join('');
+        document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
     };
 
-    // Modal Control
-    window.openJoinModal = () => {
-        joinModal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    };
-
-    window.closeJoinModal = () => {
-        joinModal.classList.remove('active');
-        document.body.style.overflow = 'auto';
-    };
+    // Modal Controls
+    window.openJoinModal = () => { joinModal.classList.add('active'); document.body.style.overflow = 'hidden'; };
+    window.closeJoinModal = () => { joinModal.classList.remove('active'); document.body.style.overflow = 'auto'; };
+    
+    window.openPhotoModal = () => { photoModal.classList.add('active'); document.body.style.overflow = 'hidden'; };
+    window.closePhotoModal = () => { photoModal.classList.remove('active'); document.body.style.overflow = 'auto'; };
 
     // Firebase Data Fetch
-    const fetchStudents = () => {
+    const fetchData = () => {
+        // Students
         db.collection("810-23-students").orderBy("createdAt", "desc")
-            .onSnapshot((snapshot) => {
-                students = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
+            .onSnapshot(snapshot => {
+                students = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderStudents();
             });
+
+        // Approved Gallery
+        db.collection("810-23-gallery").orderBy("createdAt", "desc")
+            .onSnapshot(snapshot => {
+                galleryPhotos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderGallery();
+            });
+
+        // Pending (Only if admin)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('admin') === 'true') {
+            adminSection.style.display = 'block';
+            db.collection("810-23-pending-gallery").orderBy("createdAt", "desc")
+                .onSnapshot(snapshot => {
+                    pendingPhotos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderAdminPanel();
+                });
+        }
     };
 
-    // Join Form Submit
+    // Render Admin Panel
+    const renderAdminPanel = () => {
+        if (!pendingPhotosList) return;
+        pendingPhotosList.innerHTML = pendingPhotos.map(photo => `
+            <div class="admin-item">
+                <img src="${photo.img}" alt="${photo.title}">
+                <h4>${photo.title}</h4>
+                <div class="admin-item-actions">
+                    <button class="btn btn-primary btn-sm" onclick="approvePhoto('${photo.id}')">Tasdiqlash</button>
+                    <button class="btn btn-outline btn-sm" onclick="deletePhoto('${photo.id}')">O'chirish</button>
+                </div>
+            </div>
+        `).join('');
+        if (pendingPhotos.length === 0) {
+            pendingPhotosList.innerHTML = "<p>Hozircha kutilayotgan rasmlar yo'q.</p>";
+        }
+    };
+
+    // Admin Actions
+    window.approvePhoto = async (id) => {
+        const photo = pendingPhotos.find(p => p.id === id);
+        if (!photo) return;
+        try {
+            await db.collection("810-23-gallery").add({
+                title: photo.title,
+                img: photo.img,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            await db.collection("810-23-pending-gallery").doc(id).delete();
+            alert("Rasm tasdiqlandi!");
+        } catch (e) { alert("Xatolik: " + e.message); }
+    };
+
+    window.deletePhoto = async (id) => {
+        if (confirm("Ushbu rasmni o'chirmoqchimisiz?")) {
+            try {
+                await db.collection("810-23-pending-gallery").doc(id).delete();
+                alert("Rasm o'chirildi.");
+            } catch (e) { alert("Xatolik: " + e.message); }
+        }
+    };
+
+    // Forms Submit
     if (joinForm) {
         joinForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const submitBtn = joinForm.querySelector('button');
-            submitBtn.disabled = true;
-            submitBtn.innerText = "Yuborilmoqda...";
-
+            const btn = joinForm.querySelector('button'); btn.disabled = true; btn.innerText = "Yuborilmoqda...";
             const newMember = {
                 name: document.getElementById('join-name').value.trim(),
                 role: document.getElementById('join-role').value.trim(),
@@ -109,49 +166,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 ig: document.getElementById('join-ig').value.trim() || null,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-
             try {
                 await db.collection("810-23-students").add(newMember);
-                joinForm.reset();
-                closeJoinModal();
-                alert("Tabriklaymiz! Siz guruhga muvaffaqiyatli qo'shildingiz.");
-            } catch (error) {
-                console.error("Firebase Xatoligi:", error);
-                alert("Xatolik yuz berdi: " + error.message + "\n\nIltimos, Firebase konsolida 'Firestore Rules' ochiqligini tekshiring.");
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerText = "Ro'yxatdan o'tish";
-            }
+                joinForm.reset(); closeJoinModal(); alert("Muvaffaqiyatli qo'shildingiz!");
+            } catch (error) { alert("Xatolik: " + error.message + "\n\nFirestore qoidalarini tekshiring."); }
+            finally { btn.disabled = false; btn.innerText = "Ro'yxatdan o'tish"; }
+        });
+    }
+
+    if (photoForm) {
+        photoForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = photoForm.querySelector('button'); btn.disabled = true; btn.innerText = "Yuborilmoqda...";
+            const newPhoto = {
+                title: document.getElementById('photo-title').value.trim(),
+                img: document.getElementById('photo-img').value.trim(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            try {
+                await db.collection("810-23-pending-gallery").add(newPhoto);
+                photoForm.reset(); closePhotoModal(); alert("Rasm yuborildi! Admin tasdiqlaganidan so'ng ko'rinadi.");
+            } catch (error) { alert("Xatolik: " + error.message); }
+            finally { btn.disabled = false; btn.innerText = "Yuborish"; }
         });
     }
 
     // Scroll Observer
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: "0px 0px -50px 0px"
-    };
-
     const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('active');
-            }
-        });
-    }, observerOptions);
+        entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('active'); });
+    }, { threshold: 0.1 });
 
-    // Navigation Effect
     window.addEventListener('scroll', () => {
-        if (window.scrollY > 50) {
-            nav.classList.add('scrolled');
-        } else {
-            nav.classList.remove('scrolled');
-        }
+        if (window.scrollY > 50) nav.classList.add('scrolled');
+        else nav.classList.remove('scrolled');
     });
 
-    // Initialize
-    fetchStudents();
-    renderGallery();
-
-    // Observe initial elements
-    document.querySelectorAll('.animate-up').forEach(el => observer.observe(el));
+    fetchData();
 });

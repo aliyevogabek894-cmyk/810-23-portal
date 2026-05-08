@@ -121,6 +121,46 @@
         </div>
     </div>
 
+    <!-- Image Upload Modal -->
+    <div id="photo-modal" class="modal">
+        <div class="modal-content glass">
+            <span class="close" onclick="closePhotoModal()">&times;</span>
+            <h2>Rasm <span>Yuborish</span></h2>
+            <p>Guruh galereyasi uchun qiziqarli rasm yuboring. Rasm admin tasdiqlaganidan so'ng ko'rinadi.</p>
+            <form id="photo-form">
+                <div class="form-group">
+                    <label for="photo-title">Rasm sarlavhasi</label>
+                    <input type="text" id="photo-title" placeholder="Masalan: Dars jarayoni..." required>
+                </div>
+                <div class="form-group">
+                    <label for="photo-img">Rasm URL manzili</label>
+                    <input type="url" id="photo-img" placeholder="https://rasm.uz/rasm.jpg" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Yuborish</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Section (Hidden by default) -->
+    <section id="admin-section" class="section" style="display: none;">
+        <div class="container">
+            <div class="section-header animate-up">
+                <h2>Guruh <span>Galereyasi</span></h2>
+                <p>Bizning unutilmas lahzalarimiz jamlangan foto-albom.</p>
+                <button class="btn btn-outline btn-sm mt-1" onclick="openPhotoModal()">Yangi rasm qo'shish</button>
+            </div>
+            
+            <div class="admin-grid">
+                <div class="admin-panel glass">
+                    <h3>Kutilayotgan Rasmlar</h3>
+                    <div id="pending-photos-list" class="admin-list">
+                        <!-- Pending photos will appear here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Footer -->
     <footer id="about">
         <div class="container">
